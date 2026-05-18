@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: mysql
   labels:
     app: mysql
     tier: database
-  name: mysql
   annotations:
     argocd.argoproj.io/sync-wave: "1"
 spec:
@@ -13,7 +13,6 @@ spec:
     matchLabels:
       app: mysql
       tier: database
-  strategy: {}
   template:
     metadata:
       labels:
@@ -21,30 +20,41 @@ spec:
         tier: database
     spec:
       containers:
-      - image: mysql:8.0
-        name: mysql
+      - name: mysql
+        image: mysql:8.0
+
         env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: rootpass
         - name: MYSQL_DATABASE
-          value: pricelist
-        - name: MYSQL_PASSWORD
           value: pricelist
         - name: MYSQL_USER
           value: pricelist
-        - name: MYSQL_RANDOM_ROOT_PASSWORD
-          value: "yes"
+        - name: MYSQL_PASSWORD
+          value: pricelist
+
+        args:
+        - --default-authentication-plugin=mysql_native_password
+
         volumeMounts:
-        - mountPath: /var/lib/mysql
-          name: mysql-db
-        livenessProbe:
-          tcpSocket:
-            port: 3306
-          initialDelaySeconds: 12
-          periodSeconds: 10
+        - name: mysql-db
+          mountPath: /var/lib/mysql
+
+        ports:
+        - containerPort: 3306
+
         readinessProbe:
           tcpSocket:
             port: 3306
-          initialDelaySeconds: 12
+          initialDelaySeconds: 15
+          periodSeconds: 5
+
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 30
           periodSeconds: 10
+
       volumes:
       - name: mysql-db
         persistentVolumeClaim:
